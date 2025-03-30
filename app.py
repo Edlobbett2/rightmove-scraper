@@ -147,8 +147,8 @@ HTML_TEMPLATE = '''
 
 def send_to_make(property_data):
     try:
-        # Replace this URL with your Make.com webhook URL
-        make_webhook_url = "https://hook.eu2.make.com/7ejahqwjswer61ae36ffw0bvacbdhfs5"
+        # Get webhook URL from environment variable
+        make_webhook_url = os.environ.get('MAKE_WEBHOOK_URL', 'https://hook.eu2.make.com/7ejahqwjswer61ae36ffw0bvacbdhfs5')
         
         # Extract ad ID from the source URL
         ad_id = property_data["source_url"].split("/")[-1]
@@ -187,7 +187,8 @@ def send_to_make(property_data):
             "price": price,
             "address": property_data["address"],
             "bedrooms": bedrooms,
-            "bathrooms": bathrooms
+            "bathrooms": bathrooms,
+            "environment": os.environ.get('FLASK_ENV', 'development')  # Add environment info
         }
         
         print("\n=== Sending to Make.com ===")
