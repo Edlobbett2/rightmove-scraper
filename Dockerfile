@@ -12,8 +12,10 @@ COPY requirements.txt .
 
 # Install Python dependencies and verify gunicorn installation
 RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0 && \
     pip show gunicorn && \
-    which gunicorn
+    which gunicorn && \
+    ls -l $(which gunicorn)
 
 # Copy the rest of the application
 COPY . .
