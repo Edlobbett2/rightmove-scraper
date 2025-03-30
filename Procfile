@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT app:app --log-file - 
+web: ./build.sh && gunicorn --bind 0.0.0.0:$PORT app:app --log-file - 
