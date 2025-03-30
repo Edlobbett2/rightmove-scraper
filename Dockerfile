@@ -9,17 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Python dependencies and verify gunicorn installation
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip show gunicorn && \
+    which gunicorn
 
 # Copy the rest of the application
 COPY . .
-
-# Verify gunicorn installation
-RUN which gunicorn
 
 # Set environment variables
 ENV PATH="/usr/local/bin:${PATH}"
 ENV PYTHONUNBUFFERED=1
 
 # Use the full path to gunicorn
-CMD ["/usr/local/bin/gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"] 
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app"] 
