@@ -1,1 +1,1 @@
-web: $HOME/.local/bin/gunicorn app:app 
+web: python -m gunicorn app:app 
