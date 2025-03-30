@@ -3,8 +3,21 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+from models import db, Property
+from datetime import datetime
 
 app = Flask(__name__)
+
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///properties.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the database
+db.init_app(app)
+
+# Create tables
+with app.app_context():
+    db.create_all()
 
 # HTML template for our test page
 HTML_TEMPLATE = '''
@@ -141,6 +154,27 @@ def send_to_make(property_data):
         
         # Clean up the price string - remove the pound symbol, spaces, and 'pcm'
         price = property_data["price"].replace("£", "").replace(" ", "").replace("pcm", "")
+        
+        # Save to database
+        property_entry = Property.query.filter_by(rightmove_id=ad_id).first()
+        if not property_entry:
+            property_entry = Property(
+                rightmove_id=ad_id,
+                price=property_data["price"],
+                address=property_data["address"],
+                bedrooms=str(bedrooms),
+                bathrooms=str(bathrooms),
+                property_type="Not specified"  # You might want to extract this from the page later
+            )
+            db.session.add(property_entry)
+        else:
+            property_entry.price = property_data["price"]
+            property_entry.address = property_data["address"]
+            property_entry.bedrooms = str(bedrooms)
+            property_entry.bathrooms = str(bathrooms)
+            property_entry.updated_at = datetime.utcnow()
+        
+        db.session.commit()
         
         # Prepare the data for Make.com
         make_data = {
@@ -299,25 +333,17 @@ def scrape():
     except Exception as e:
         return render_template_string(HTML_TEMPLATE, error=str(e))
 
-@app.route('/api/properties')
+@app.route('/api/properties', methods=['GET'])
 def get_properties():
-    mock_properties = {
-        "properties": [
-            {
-                "id": "123456",
-                "price": "£500,000",
-                "address": "123 Test Street",
-                "description": "A lovely test property"
-            },
-            {
-                "id": "789012",
-                "price": "£750,000",
-                "address": "456 Sample Road",
-                "description": "Another test property"
-            }
-        ]
-    }
-    return jsonify(mock_properties)
+    properties = Property.query.all()
+    return jsonify([prop.to_dict() for prop in properties])
+
+@app.route('/api/property/<rightmove_id>', methods=['GET'])
+def get_property(rightmove_id):
+    property_entry = Property.query.filter_by(rightmove_id=rightmove_id).first()
+    if property_entry:
+        return jsonify(property_entry.to_dict())
+    return jsonify({"error": "Property not found"}), 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
